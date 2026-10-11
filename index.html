@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運転免許 学科試験 研究アンケート</title>
+    <style>
+        :root { --primary: #1B365D; --background: #f7f9fa; }
+        body { font-family: sans-serif; background-color: var(--background); color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; line-height: 1.6; }
+        .quiz-container { background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 700px; padding: 30px; box-sizing: border-box; }
+        .progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; min-height: 60px; }
+        .hint-box { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-weight: bold; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* ボタンの基本スタイル */
+        .btn-opt { border: 2px solid #e0e0e0; background: white; border-radius: 12px; padding: 20px; font-size: 1.8rem; cursor: pointer; transition: 0.1s; color: #333; }
+        .btn-opt:hover { background: #f8f9fa; border-color: #d0d0d0; }
+        
+        /* ⭕選択時の配色（青系） */
+        .btn-opt.selected-maru { background: #e3f2fd !important; border-color: #2196f3 !important; color: #0d47a1 !important; font-weight: bold; box-shadow: 0 0 10px rgba(33,150,243,0.3); }
+        /* ❌選択時の配色（青系） */
+        .btn-opt.selected-batsu { background: #e3f2fd !important; border-color: #2196f3 !important; color: #0d47a1 !important; font-weight: bold; box-shadow: 0 0 10px rgba(33,150,243,0.3); }
+        
+        /* フィードバック（解説）のスタイル */
+        .feedback { display: none; padding: 20px; border-radius: 12px; margin-top: 20px; border-width: 1px; border-style: solid; }
+        /* 正解時は緑 */
+        .feedback.correct { display: block; background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
+        /* 不正解時は赤 */
+        .feedback.wrong { display: block; background: #ffebee; color: #b71c1c; border-color: #ef9a9a; }
+        
+        .btn-next { display: none; width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.2s; }
+        .btn-next:hover { background: #132641; }
+        
+        /* 注意事項・プライバシー */
+        .privacy-box { background: #f1f3f5; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #666; margin: 15px 0; border: 1px solid #dee2e6; text-align: justify; }
+        .warning-text { color: #856404; font-weight: bold; background: #fff3cd; padding: 10px 15px; border-radius: 8px; border: 1px solid #ffeeba; display: inline-block; margin-top: 10px; font-size: 0.9rem; }
+        
+        /* 答え合わせ画面・アンケート画面 */
+        .score-summary { background: #f0f4f8; padding: 20px; border-radius: 12px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; border-left: 5px solid var(--primary); }
+        .review-item { border-bottom: 1px solid #eee; padding: 15px 0; text-align: left; }
+        .review-q { font-weight: bold; margin-bottom: 8px; font-size: 1.05rem; }
+        .review-ans-row { display: flex; gap: 15px; margin: 8px 0; font-size: 0.9rem; flex-wrap: wrap; }
+        
+        .badge { padding: 3px 10px; border-radius: 4px; font-weight: bold; color: white; font-size: 0.85rem; }
+        .badge.correct-bg { background: #2e7d32; } 
+        .badge.wrong-bg { background: #c62828; }   
+        .badge.choice-bg { background: #616161; }   
+
+        .review-desc { font-size: 0.9rem; color: #555; margin-top: 8px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        .survey-q { margin-bottom: 25px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div id="start-screen">
+        <h2>運転免許 模擬クイズ（研究用）</h2>
+        <p>同じ13問を、前半（補足なし）と後半（補足あり）で合計26問解いていただきます。クイズの後に<strong>答え合わせとアンケート</strong>があります。最後にあるアンケートの回答までお願いします。</p>
+        <div class="warning-text">⚠️ 注意：一度解答して「次へ進む」を押すと、前の問題には戻れません。<br>（「次へ進む」ボタンを押す前なら、⭕❌を選び直せます）</div>
+        <input type="text" id="nickname" style="width:100%; padding:14px; margin:20px 0 10px 0; border:2px solid #e0e0e0; border-radius:8px; box-sizing:border-box; font-size:1rem;" placeholder="ニックネームを入力（例：がくせい太郎）">
+        <div class="privacy-box">【個人情報保護】回答内容は卒業研究の目的以外には使用しません。適切に管理し、個人が特定されることはありません。</div>
+        <button class="btn-next" style="display:block;" onclick="startQuiz()">同意して始める</button>
+    </div>
+
+    <div id="quiz-screen" style="display:none; text-align: center;">
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div id="q-num" style="font-weight:bold; color:#666; margin-bottom: 8px; font-size: 0.9rem;"></div>
+        <div class="question-text" id="q-text"></div>
+        <div class="hint-box" id="hint-box" style="display:none;"></div>
+        <div class="options">
+            <button class="btn-opt" id="opt-maru" onclick="selectAnswer('⭕')">⭕</button>
+            <button class="btn-opt" id="opt-batsu" onclick="selectAnswer('❌')">❌</button>
+        </div>
+        
+        <div class="feedback" id="feedback-box">
+            <div id="feedback-status" style="font-weight:bold; font-size: 1.1rem; margin-bottom: 5px;"></div>
+            <div id="feedback-text"></div>
+        </div>
+        
+        <button class="btn-next" id="btn-next" onclick="nextQuestion()">次へ進む</button>
+    </div>
+
+    <div id="review-screen" style="display:none; text-align:center;">
+        <h2>答え合わせ・解説</h2>
+        <div class="score-summary">
+            <div>📊 あなたの総合得点結果</div>
+            <div style="margin-top: 15px; display: flex; justify-content: space-around; font-size: 1.1rem; flex-wrap: wrap; gap: 10px;">
+                <span>前半 (補足なし): <span id="summary-score1" style="color:#b71c1c; font-size:1.5rem;"></span> / 13問</span>
+                <span>後半 (補足あり): <span id="summary-score2" style="color:#1b5e20; font-size:1.5rem;"></span> / 13問</span>
+            </div>
+        </div>
+        <p style="margin-bottom: 20px;">アンケートの前に正解とあなたの回答（前後半）を確認しましょう。</p>
+        <div id="review-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 15px; margin: 20px 0; border-radius: 8px; background: #fcfcfc;"></div>
+        <button class="btn-next" style="display:block;" onclick="goSurvey()">アンケートへ進む</button>
+    </div>
+
+    <div id="survey-screen" style="display:none;">
+        <h3 style="text-align:center; margin-bottom: 25px;">最後にアンケートをお願いします</h3>
+        <div class="survey-survey-container" style="max-width: 600px; margin: 0 auto;">
+            <div class="survey-q">1. 免許を持っていますか？<br>
+                <label style="margin-right:15px;"><input type="radio" name="sq1" value="はい"> はい</label>
+                <label style="margin-right:15px;"><input type="radio" name="sq1" value="いいえ"> いいえ</label>
+                <label><input type="radio" name="sq1" value="取得中"> 取得中</label>
+            </div>
+            <div class="survey-q">2. 前半と後半で解きやすさに違いはありましたか？<br>
+                <label style="margin-right:15px;"><input type="radio" name="sq2" value="はい" onclick="document.getElementById('sq3').style.display='block'"> はい</label>
+                <label><input type="radio" name="sq2" value="いいえ" onclick="document.getElementById('sq3').style.display='none'"> いいえ</label>
+            </div>
+            <div class="survey-survey-q" id="sq3" style="display:none; background: #f1f8ff; border: 1px solid #cce5ff; padding:15px; border-radius:8px; margin-bottom:25px;">3. どちらが解きやすかったですか？<br>
+                <label style="margin-right:15px;"><input type="radio" name="sq3" value="1回目"> 前半（補足なし）</label>
+                <label><input type="radio" name="sq3" value="2回目"> 後半（補足あり）</label>
+            </div>
+            <div class="survey-q">4. 練習の際、今後、このような補足機能はあった方が良いですか？<br>
+                <label style="margin-right:15px;"><input type="radio" name="sq4" value="はい" onclick="document.getElementById('sq4-reason-box').style.display='none'"> はい</label>
+                <label><input type="radio" name="sq4" value="いいえ" onclick="document.getElementById('sq4-reason-box').style.display='block'"> いいえ</label>
+            </div>
+            <div class="survey-survey-q" id="sq4-reason-box" style="display:none; background: #f1f8ff; border: 1px solid #cce5ff; padding:15px; border-radius:8px; margin-bottom:25px;">
+                💡 「いいえ」と答えた理由があれば教えてください（任意）<br>
+                <input type="text" id="sq4-reason" style="width:100%; padding:10px; margin-top:10px; border:2px solid #e0e0e0; border-radius:8px; box-sizing:border-box; font-size:1rem;" placeholder="例：実際の試験に近い形式（補足なし）で練習したいため、など">
+            </div>
+            <button class="btn-next" style="display:block; margin-top: 30px;" onclick="submitAll()">結果を送信する</button>
+        </div>
+    </div>
+
+    <div id="result-screen" style="display:none; text-align: center; padding: 40px 0;">
+        <h2 id="sending-msg" style="color: #0d47a1;">データを送信中...</h2>
+        <p id="leave-warning" style="color: #b71c1c; font-weight: bold; background: #ffebee; padding: 15px; border-radius: 8px; border: 1px solid #ef9a9a; margin: 20px auto; max-width: 500px;">⚠️ データの保存が完了するまで、このページを閉じたり離れたりしないでください。</p>
+        <p style="margin-top:30px; color: #555;">これでクイズとアンケートはすべて終了です。<br>ご協力ありがとうございました！</p>
+    </div>
+</div>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwd6M1S6Cj8cfll90qSrduF5BI83BNaZqKm7c8gHlDTGcRJPAz29sPELIR8WoKTyC7W/exec";
+
+const baseData = [
+    { q: "普通免許や二輪免許を受けて1年以内のものは、初心者マークをつけなければならない", a: "❌", desc: "二輪免許には初心者マークを付ける義務はありません。", h: "「初心者＝マークを表示する」というイメージが先行しやすいですが、問題文にある「二輪免許」という言葉に注目してみましょう。初心者マークの表示義務がどの種類の免許や車両に定められているかを整理してみましょう。" },
+    { q: "横断歩道に近づいた時、横断する歩行者がいるかいないか明らかでない場合には必ず徐行しなければならない。", a: "❌", desc: "「必ず徐行」ではなく、手前で停止できる速度に落とすのが正解です（徐行は時速10キロ以下の速度）。", h: "「必ず徐行」という強い表現に注目してみましょう。横断歩道に近づいた際、歩行者の有無がわからない時に求められる対応は、限定された「徐行」だけでしょうか。ルールが示す減速の基準を改めて思い出してみましょう。" },
+    { q: "車庫などの自動車専用の出入口から5メートル以内の場所は駐車禁止である", a: "❌", desc: "5メートルではなく「3メートル以内」が駐車禁止です。", h: "「自動車専用の出入口」という対象と、「5メートル」という距離の数値に注目してみましょう。駐車禁止場所のルールでは、対象によって設定されている距離が異なります。その場所に対して提示された距離の数値が適切か見直してみましょう" },
+    { q: "工場現場の端から5メートル以内は、駐車は禁止されているが、停車は禁止されていない。", a: "⭕", desc: "駐車禁止場所ですが、人の乗り降りや荷物の積み下ろしなどのための「停車」はできます。", h: "「工事現場の端から5メートル以内」という場所について、「駐車」と「停車」の扱いがそれぞれどう定められているかに注目してみましょう。その場所は「駐停車禁止」なのか「駐車禁止」なのかを整理することが大切です。" },
+    { q: "人の乗り降りや荷物の積み下ろしのための停車であれば5分超えても駐車にならない", a: "⭕", desc: "人の乗り降りは時間の制限はありません。", h: "「人の乗り降り」という目的と、「5分」という時間の関係に着目してみましょう。荷物の積み下ろしなど他の目的と比べて、時間の長短がどのように定義されているか、言葉の定義をもう一度振り返ってみてください。" },
+    { q: "大型特殊免許では大型特殊自動車のほか大型自動車も運転することが出来る", a: "❌", desc: "大型自動車を運転するには大型免許が必要です。", h: "「大型特殊自動車」と「大型自動車」という言葉に着目しましょう。道路交通法では、車両の「大きさ」と「特殊な構造・用途」をどう区分しているでしょうか。それぞれの免許の対象範囲を整理してみてください。" },
+    { q: "安全地帯のある停留所で止まっている路面電車の側方を通過する場合は、乗降者の有無に関係なく徐行して進むことが出来る", a: "⭕", desc: "安全地帯がある場合は、乗降客がいてもいなくても徐行して進めます。", h: "「安全地帯のある停留所」という条件に注目しましょう。路面電車の側方を通過する際のルールは、安全地帯が設置されているかどうかで変わります。乗り降りする人と車との間に安全な場所があるかを考えてみましょう。" },
+    { q: "信号のある交差点で停止線がない場合の停止位置は、信号の直前である。", a: "❌", desc: "停止線がある場合は「停止線の直前」が停止位置ですが、停止線がない場合は信号の直前ではなく「交差点の直前」が正解です。", h: "注目すべきは停止位置が「何」の直前と書かれているかです。信号機は交差点の奥に設置されていることもありますよね。安全な通行のために、停止線がない時は「交差点」と「信号」のどちらを基準にすべきか考えてみましょう。" },
+    { q: "車を運転中、急ブレーキは絶対にしてはいけない。", a: "❌", desc: "人命優先のシーンにおいては危険回避のため、やむえず急ブレーキが必要な場合もあり、「絶対に」とは言えません。", h: "問題文の「絶対にしてはいけない」という表現に注目しましょう。普段は避けるべき操作であっても、交通事故を回避するためにやむを得ない緊急事態が起きた場合、どのような判断が必要になるか考えてみてください。" },
+    { q: "上り坂の頂上付近やこう配の急な坂は、徐行すべき場所である。", a: "❌", desc: "こう配の急な坂ではなく、こう配の急な「下り坂」です。", h: "「こう配の急な坂」という言葉に注目しましょう。坂道には「上り」と「下り」の2種類がありますが、交通ルールにおいて双方で徐行が必要とされるでしょうか。車の加速や危険性を踏まえて違いを整理してみましょう。" },
+    { q: "中央線は、必ず道路の中心にひかれている。", a: "❌", desc: "中心ではなく、道路の「中央」にひかれています。", h: "「必ず」「中心」という言葉に注目してみましょう。道路の幅や車線の構成は場所によって様々ですが、どんな道路でも文字通り真ん中に線が引かれているのか、例外となる状況がないか考えてみてください。" },
+    { q: "原動機付き自転車は公道で50km/h以上で走ってはいけない。", a: "❌", desc: "原動機付き自転車は30km/h以上で走行してはならないため、「50km/h以上禁止」とすると30〜49km/hが許可されることになるため誤りです。", h: "原動機付き自転車の基本的な法定最高速度を思い出してみましょう。「50km/h以上で走ってはいけない」という条件の場合、それ未満の速度（例えば40km/h）での走行がどう扱われることになるのか、文章の意味を慎重に考えてみてください。" },
+    { q: "車両は最低速度が40キロに定められているときは40キロ以下の速度で走ってはいけない", a: "❌", desc: "車両には低速しか出せない原動機付自転車や軽車両も含まれるため誤りです。", h: "数字にとらわれず、文頭にある「車両」という言葉に注目しましょう。最低速度のルールが当てはまる自動車と、対象から外れる乗り物があるかなど、「車両」の示す範囲を慎重に思い返してみてください。" }
+];
+
+let quizData = [];
+baseData.forEach(d => quizData.push({q:d.q, a:d.a, desc:d.desc, hint:""}));
+baseData.forEach(d => quizData.push({q:d.q, a:d.a, desc:d.desc, hint:d.h}));
+
+let currentIdx = 0; let score1 = 0; let score2 = 0; let userName = ""; 
+let detailedAnswers = []; let userChoices = [];
+let currentChoice = ""; 
+
+function startQuiz() {
+    userName = document.getElementById("nickname").value.trim() || "匿名希望";
+    document.getElementById("start-screen").style.display = "none";
+    document.getElementById("quiz-screen").style.display = "block";
+    initQuiz();
+}
+
+function initQuiz() {
+    currentChoice = ""; 
+    document.getElementById("feedback-box").style.display = "none";
+    
+    const btnM = document.getElementById("opt-maru");
+    const btnB = document.getElementById("opt-batsu");
+    btnM.className = "btn-opt";
+    btnB.className = "btn-opt";
+    
+    document.getElementById("btn-next").style.display = "none";
+    
+    document.getElementById("progress").style.width = (currentIdx/26*100) + "%";
+    document.getElementById("q-num").innerText = "問題 " + (currentIdx + 1) + " / 26";
+    document.getElementById("q-text").innerText = quizData[currentIdx].q;
+    const hBox = document.getElementById("hint-box");
+    if(quizData[currentIdx].hint) { hBox.innerText = quizData[currentIdx].hint; hBox.style.display="block"; }
+    else { hBox.style.display="none"; }
+}
+
+function selectAnswer(choice) {
+    currentChoice = choice; 
+    
+    const btnM = document.getElementById("opt-maru");
+    const btnB = document.getElementById("opt-batsu");
+    
+    btnM.className = "btn-opt";
+    btnB.className = "btn-opt";
+    
+    if(choice === '⭕') {
+        btnM.className = "btn-opt selected-maru";
+    } else {
+        btnB.className = "btn-opt selected-batsu";
+    }
+    
+    const isCorrectNow = choice === quizData[currentIdx].a;
+    document.getElementById("feedback-status").innerText = isCorrectNow ? "🎉 正解！" : "❌ 不正解...";
+    document.getElementById("feedback-text").innerText = quizData[currentIdx].desc;
+    document.getElementById("feedback-box").className = "feedback " + (isCorrectNow ? "correct" : "wrong");
+    
+    document.getElementById("btn-next").style.display = "block";
+}
+
+function nextQuestion() {
+    const finalCorrect = currentChoice === quizData[currentIdx].a;
+    detailedAnswers.push(finalCorrect ? "⭕" : "❌");
+    userChoices.push(currentChoice);
+
+    if(finalCorrect) { if(currentIdx < 13) score1++; else score2++; }
+
+    currentIdx++;
+    if(currentIdx < 26) initQuiz(); else showReview();
+}
+
+function showReview() {
+    document.getElementById("quiz-screen").style.display = "none";
+    document.getElementById("summary-score1").innerText = score1;
+    document.getElementById("summary-score2").innerText = score2;
+    const list = document.getElementById("review-list");
+    list.innerHTML = "";
+    
+    baseData.forEach((d, i) => {
+        let uAns1 = userChoices[i];
+        let uAns2 = userChoices[i + 13];
+        let status1 = (uAns1 === d.a) ? "correct-bg" : "wrong-bg";
+        let status2 = (uAns2 === d.a) ? "correct-bg" : "wrong-bg";
+
+        list.innerHTML += `<div class="review-item">
+            <div class="review-q">第 ${i+1} 問: ${d.q}</div>
+            <div class="review-ans-row">
+                <span style="font-weight:bold; color: #0d47a1;">⭐ 正解: 【 ${d.a} 】</span>
+                <span>前半回答: <span class="badge choice-bg">${uAns1}</span> <span class="badge ${status1}">${(uAns1 === d.a) ? "正解" : "不正解"}</span></span>
+                <span>後半回答: <span class="badge choice-bg">${uAns2}</span> <span class="badge ${status2}">${(uAns2 === d.a) ? "正解" : "不正解"}</span></span>
+            </div>
+            <div class="review-desc"><strong>【解説】</strong>${d.desc}</div>
+        </div>`;
+    });
+    document.getElementById("review-screen").style.display = "block";
+}
+
+function goSurvey() {
+    document.getElementById("review-screen").style.display = "none";
+    document.getElementById("survey-screen").style.display = "block";
+}
+
+function submitAll() {
+    const q1 = document.querySelector('input[name="sq1"]:checked')?.value || "未回答";
+    const q2 = document.querySelector('input[name="sq2"]:checked')?.value || "未回答";
+    const q3 = document.querySelector('input[name="sq3"]:checked')?.value || "非該当";
+    const q4 = document.querySelector('input[name="sq4"]:checked')?.value || "未回答";
+    
+    // 追加した理由データの取得（「いいえ」の時だけ中身を取得し、それ以外は非該当とする）
+    const q4Reason = (q4 === "いいえ") ? (document.getElementById("sq4-reason").value.trim() || "未入力") : "非該当";
+
+    if(q1 === "未回答" || q2 === "未回答" || q4 === "未回答") {
+        alert("アンケートの回答を選択してください。");
+        return;
+    }
+    if(q2 === "はい" && q3 === "非該当") {
+        alert("質問3のどちらが解きやすかったかを選択してください。");
+        return;
+    }
+
+    document.getElementById("survey-screen").style.display = "none";
+    document.getElementById("result-screen").style.display = "block";
+
+    fetch(WEB_APP_URL, {
+        method: "POST", mode: "no-cors",
+        body: JSON.stringify({
+            name: userName, score1: score1+"/13", score2: score2+"/13",
+            detailedAnswers: detailedAnswers, ans1: q1, ans2: q2, ans3: q3, ans4: q4, ans4Reason: q4Reason
+        })
+    }).then(() => {
+        document.getElementById("sending-msg").innerText = "✨ 送信完了しました！";
+        document.getElementById("sending-msg").style.color = "#1b5e20";
+        document.getElementById("leave-warning").style.display = "none";
+    }).catch(() => {
+        document.getElementById("sending-msg").innerText = "⚠️ 送信エラーが発生しました。";
+        document.getElementById("sending-msg").style.color = "#b71c1c";
+    });
+}
+</script>
+</body>
+</html>
